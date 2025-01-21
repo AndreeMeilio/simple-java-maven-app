@@ -1,25 +1,21 @@
-pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.0'
-            args '-v /root/.m2:/root/.m2'
-        }  
-    }
-    stages{
+node {
+    try {
+        stage("Checkout"){
+            checkout scm
+        }
         stage("Build"){
-            steps {
+            docker.image("maven:3.9.2").inside("-v /root/.m2:/root/.m2"){
                 sh 'mvn -B -DskipTests clean package'
             }
         }
-        stage('Test') {
-            steps {
+        stage("Test"){
+            docker.image("maven:3.9.2").inside("-v /root/.m2:/root/.m2"){
                 sh 'mvn test'
             }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
-            }
         }
+    } catch (error) {
+        echo "Terjadi kesalahan: ${error.message}"
+        currentBuild.result = 'FAILURE'
+        throw error
     }
 }
